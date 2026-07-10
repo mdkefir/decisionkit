@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "decisionkit"
+version = "0.1.0"
+description = "Explainable decision support, scoring, and ranking for Python backends."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    { name = "DecisionKit Contributors" },
+]
+keywords = [
+    "decision-support",
+    "mcda",
+    "ranking",
+    "scoring",
+    "explainable",
+    "topsis",
+    "weighted-sum",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/decisionkit/decisionkit"
+Documentation = "https://github.com/decisionkit/decisionkit#readme"
+Issues = "https://github.com/decisionkit/decisionkit/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["decisionkit*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+decisionkit = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
