@@ -1,6 +1,6 @@
 # DecisionKit
 
-[![CI](https://github.com/decisionkit/decisionkit/actions/workflows/ci.yml/badge.svg)](https://github.com/decisionkit/decisionkit/actions/workflows/ci.yml)
+[![CI](https://github.com/mdkefir/decisionkit/actions/workflows/ci.yml/badge.svg)](https://github.com/decisionkit/decisionkit/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/decisionkit.svg)](https://pypi.org/project/decisionkit/)
 [![Python versions](https://img.shields.io/pypi/pyversions/decisionkit.svg)](https://pypi.org/project/decisionkit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
