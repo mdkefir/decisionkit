@@ -688,6 +688,9 @@ class DecisionResult:
         decision_id: str | None = None,
         metadata: Mapping[str, Any] | None = None,
         timestamp: str | None = None,
+        include_hash: bool = False,
+        hash_algorithm: str = "sha256",
+        include_timestamp_in_hash: bool = False,
     ) -> dict[str, Any]:
         """Return a stable, JSON-serializable audit record.
 
@@ -701,6 +704,12 @@ class DecisionResult:
             Optional caller-supplied timestamp string. DecisionKit does not
             invent timestamps, so audits stay deterministic unless you inject
             one.
+        include_hash:
+            When true, include an ``audit_hash`` object with algorithm + digest.
+        hash_algorithm:
+            Hash algorithm used when ``include_hash`` is true (default sha256).
+        include_timestamp_in_hash:
+            When true, include ``timestamp`` in the hashed payload.
         """
         from decisionkit.audit import build_audit_dict
 
@@ -708,5 +717,31 @@ class DecisionResult:
             self,
             decision_id=decision_id,
             metadata=metadata,
+            timestamp=timestamp,
+            include_hash=include_hash,
+            hash_algorithm=hash_algorithm,
+            include_timestamp_in_hash=include_timestamp_in_hash,
+        )
+
+    def audit_hash(
+        self,
+        *,
+        algorithm: str = "sha256",
+        include_timestamp: bool = False,
+        timestamp: str | None = None,
+    ) -> str:
+        """Return a deterministic hex digest for this decision result.
+
+        The digest covers method, model config, context, input ids, exclusions,
+        ranking/score breakdowns, and the best alternative. It excludes
+        ``decision_id``, ``metadata``, and ``timestamp`` unless
+        ``include_timestamp`` is true.
+        """
+        from decisionkit.audit import audit_hash_for_result
+
+        return audit_hash_for_result(
+            self,
+            algorithm=algorithm,
+            include_timestamp=include_timestamp,
             timestamp=timestamp,
         )

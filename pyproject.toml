@@ -4,28 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "decisionkit"
-version = "0.2.0"
-description = "Explainable decision support, scoring, and ranking for Python backends."
+version = "0.3.0"
+description = "Lightweight explainable scoring and ranking engine for Python backends."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [
     { name = "DecisionKit Contributors" },
 ]
 keywords = [
     "decision-support",
-    "mcda",
-    "ranking",
     "scoring",
-    "explainable",
+    "ranking",
+    "decision-engine",
+    "fastapi",
+    "django",
+    "mcdm",
+    "mcda",
+    "explainable-ai",
     "topsis",
     "weighted-sum",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -41,14 +47,21 @@ yaml = [
 ]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
     "ruff>=0.6",
+    "mypy>=1.10",
     "PyYAML>=6.0",
+    "build>=1.2",
+    "twine>=5.0",
 ]
+docs = []
 
 [project.urls]
 Homepage = "https://github.com/decisionkit/decisionkit"
-Documentation = "https://github.com/decisionkit/decisionkit#readme"
+Documentation = "https://github.com/decisionkit/decisionkit/tree/main/docs"
+Repository = "https://github.com/decisionkit/decisionkit"
 Issues = "https://github.com/decisionkit/decisionkit/issues"
+Changelog = "https://github.com/decisionkit/decisionkit/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -63,6 +76,37 @@ minversion = "8.0"
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["decisionkit"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["decisionkit"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "yaml"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 88

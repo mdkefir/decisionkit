@@ -51,6 +51,7 @@ def rank_alternatives(payload: RankRequest) -> dict[str, Any]:
     return result.to_audit_dict(
         decision_id=payload.decision_id,
         metadata=payload.metadata,
+        include_hash=True,
     )
 
 

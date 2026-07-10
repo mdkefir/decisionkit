@@ -1,8 +1,19 @@
 # DecisionKit
 
-Explainable decision support, scoring, and ranking for Python backends.
+[![CI](https://github.com/decisionkit/decisionkit/actions/workflows/ci.yml/badge.svg)](https://github.com/decisionkit/decisionkit/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/decisionkit.svg)](https://pypi.org/project/decisionkit/)
+[![Python versions](https://img.shields.io/pypi/pyversions/decisionkit.svg)](https://pypi.org/project/decisionkit/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-DecisionKit lets you describe criteria, weights, constraints, penalties, and bonuses in code or config, then get ranked alternatives with scores, explanations, and audit-ready output. No machine learning, no database, no web framework required.
+**DecisionKit** is a lightweight explainable scoring and ranking engine for Python backends.
+
+Describe criteria, weights, constraints, penalties, and bonuses — in code or config — then get ranked alternatives with scores, human-readable explanations, and audit-ready output.
+
+No machine learning. No database. No web UI. Core has **zero runtime dependencies**.
+
+## Project status
+
+**Beta (v0.3.0)** — useful for real backend workflows; API aims to stay stable across minor releases. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
@@ -16,7 +27,7 @@ Optional YAML support:
 pip install "decisionkit[yaml]"
 ```
 
-Until the package is published on PyPI, install from source:
+From source:
 
 ```bash
 pip install -e ".[dev]"
@@ -46,7 +57,7 @@ print(result.best.id)
 print(result.explain())
 ```
 
-## Config-driven quick start
+## Config-driven usage
 
 ```python
 from decisionkit import DecisionModel
@@ -75,7 +86,6 @@ config = {
             "operator": "gt",
             "value": 5,
             "amount": 0.1,
-            "reason": "High workload reduces recommendation score",
         }
     ],
     "bonuses": [
@@ -85,13 +95,11 @@ config = {
             "operator": "gte",
             "value": 0.9,
             "amount": 0.05,
-            "reason": "Very strong topic match",
         }
     ],
 }
 
 model = DecisionModel.from_dict(config)
-
 result = model.rank(
     [
         {
@@ -115,31 +123,22 @@ result = model.rank(
 )
 
 print(result.best.id)
-print(result.explain())
-print(result.to_audit_dict(decision_id="demo-1"))
+print(result.to_audit_dict(include_hash=True)["audit_hash"])
 ```
 
-### JSON config
+JSON and optional YAML helpers:
 
 ```python
-model = DecisionModel.from_json(open("model.json", encoding="utf-8").read())
-print(model.to_json())
-```
-
-### YAML config
-
-Requires `pip install "decisionkit[yaml]"`.
-
-```python
-model = DecisionModel.from_yaml(open("model.yaml", encoding="utf-8").read())
-print(model.to_yaml())
+model = DecisionModel.from_json(model.to_json())
+# pip install "decisionkit[yaml]"
+# model = DecisionModel.from_yaml(model.to_yaml())
 ```
 
 ## Rules: constraints, penalties, bonuses
 
-Supported operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, `between`.
+Operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, `between`.
 
-Rules can compare an alternative field to a literal value or to a context key:
+Context-aware rule:
 
 ```python
 {
@@ -147,11 +146,10 @@ Rules can compare an alternative field to a literal value or to a context key:
     "field": "workload",
     "operator": "lte",
     "context": "max_workload",
-    "reason": "Workload must stay within capacity",
 }
 ```
 
-Compound rules use `all` (AND) or `any` (OR):
+Compound rule (`all` = AND, `any` = OR):
 
 ```python
 {
@@ -160,45 +158,24 @@ Compound rules use `all` (AND) or `any` (OR):
         {"field": "available", "operator": "eq", "value": True},
         {"field": "workload", "operator": "lte", "context": "max_workload"},
     ],
-    "reason": "Available and within capacity",
 }
 ```
 
-## Audit export
+## Audit export and hash
 
 ```python
 audit = result.to_audit_dict(
     decision_id="req-123",
     metadata={"tenant": "acme"},
-    timestamp="2026-07-10T10:00:00Z",  # optional; not auto-generated
+    timestamp="2026-07-10T10:00:00Z",
+    include_hash=True,
 )
+digest = result.audit_hash()  # sha256 of canonical decision payload
 ```
 
-The audit payload includes model config, context, input ids, exclusions, score breakdowns, triggered penalties/bonuses, and the selected best alternative. It is JSON-serializable.
+The digest covers method, model, context, inputs, exclusions, ranking, and best alternative. It excludes `decision_id`, `metadata`, and `timestamp` by default. Details: [docs/audit.md](docs/audit.md).
 
-## Why DecisionKit exists
-
-Most teams eventually hard-code scoring logic inside views, services, or spreadsheets. That logic is hard to test, hard to explain, and hard to reuse.
-
-Academic MCDA packages are powerful, but often awkward for day-to-day backend work.
-
-DecisionKit is a backend-friendly decision engine:
-
-- clean, typed Python API
-- config-driven models (dict / JSON / optional YAML)
-- explainable ranking output
-- constraints, penalties, bonuses
-- audit-friendly results for APIs and logs
-- no ML, no ORM, no framework lock-in
-
-## Supported methods
-
-| Method | Key | Notes |
-| --- | --- | --- |
-| Weighted sum (SAW) | `weighted_sum` | Min-max normalization; `min` criteria are inverted so higher is always better |
-| TOPSIS | `topsis` | Vector normalization and closeness to the ideal solution |
-
-## FastAPI example
+## FastAPI integration
 
 ```python
 from fastapi import FastAPI, HTTPException
@@ -214,16 +191,19 @@ def rank(payload: dict):
             payload["alternatives"],
             context=payload.get("context", {}),
         )
-        return result.to_audit_dict(decision_id=payload.get("decision_id"))
+        return result.to_audit_dict(
+            decision_id=payload.get("decision_id"),
+            include_hash=True,
+        )
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 ```
 
-See `examples/fastapi_example.py` for a complete request model.
+See `examples/fastapi_example.py`.
 
-## Django service-layer example
+## Django service-layer integration
 
-Store the DecisionKit config in admin/settings/DB, then rank in a service module:
+Keep DecisionKit in a service module; store config in settings/admin/DB:
 
 ```python
 from decisionkit import DecisionModel
@@ -231,40 +211,76 @@ from decisionkit import DecisionModel
 def rank_reviewers(candidates: list[dict], model_config: dict) -> dict:
     model = DecisionModel.from_dict(model_config)
     result = model.rank(candidates, context={"max_workload": 5})
-    return result.to_audit_dict(decision_id="editorial-assign")
+    return result.to_audit_dict(decision_id="editorial-assign", include_hash=True)
 ```
 
-See `examples/django_service_example.py` for a DTO-based service pattern.
+See `examples/django_service_example.py`.
+
+## How DecisionKit compares
+
+| Approach | Fit |
+| --- | --- |
+| Ad-hoc `if` / spreadsheet scoring | Fast to start, hard to explain, test, or reuse |
+| Generic rule engines | Great for branching logic; weaker at weighted ranking + score breakdowns |
+| Academic MCDA toolkits | Broad method coverage; often awkward for backend APIs and audits |
+| **DecisionKit** | Backend-friendly weighted ranking with rules, explanations, and audit hashes |
+
+DecisionKit is not trying to replace every MCDA method. It focuses on explainable scoring you can ship in Django/FastAPI services.
+
+## Supported methods
+
+| Method | Key | Notes |
+| --- | --- | --- |
+| Weighted sum | `weighted_sum` | Min-max normalization; `min` criteria inverted |
+| TOPSIS | `topsis` | Vector normalization + closeness to ideal |
 
 ## Examples
 
 ```bash
 python examples/reviewer_selection.py
+python examples/vendor_ranking.py
+python examples/task_prioritization.py
+python examples/risk_scoring.py
 python examples/django_service_example.py
 ```
+
+More: [docs/examples.md](docs/examples.md)
+
+## Documentation
+
+- [docs/index.md](docs/index.md) — docs home
+- [docs/quickstart.md](docs/quickstart.md)
+- [docs/rules.md](docs/rules.md)
+- [docs/audit.md](docs/audit.md)
+- [docs/api-reference.md](docs/api-reference.md)
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
 python -m ruff check src tests examples
+python -m mypy src
+python -m pytest --cov=decisionkit --cov-report=term-missing
 ```
+
+CI runs on Python 3.11 and 3.12 (see `.github/workflows/ci.yml`).
+
+Release steps: [RELEASE.md](RELEASE.md)
 
 ## Roadmap
 
-### v0.3.0
+### v0.4.0
 
-- AHP method
-- richer audit hashing / signed decision records
-- FastAPI dependency helpers
-- first-class Django integration package sketch
+- AHP method (optional, still backend-friendly)
+- Nested boolean rule trees (beyond flat `all`/`any`)
+- Signed / hashed decision record helpers for long-term storage
 
 ### Later
 
-- ELECTRE / PROMETHEE
-- optional CLI for batch ranking
+- ELECTRE / PROMETHEE (only if API stays simple)
+- `decisionkit-django` integration package
+- Optional CLI for batch ranking
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

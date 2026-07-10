@@ -18,10 +18,11 @@ dist/
 # Testing / tooling
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 .coverage
 htmlcov/
-.mypy_cache/
 .tox/
+coverage.xml
 
 # Editors / OS
 .idea/

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 
-from decisionkit import Criterion, DecisionModel
+import pytest
+
+from decisionkit import Criterion, DecisionModel, ValidationError
+from decisionkit.audit import compute_audit_hash
 
 
 def test_to_audit_dict_schema_and_json_serializable() -> None:
@@ -83,7 +86,6 @@ def test_to_audit_dict_schema_and_json_serializable() -> None:
     assert "base_score" in audit["ranking"][0]
     assert "contributions" in audit["ranking"][0]
 
-    # Must be JSON-serializable.
     encoded = json.dumps(audit)
     assert "dec-123" in encoded
 
@@ -95,3 +97,47 @@ def test_audit_without_timestamp_stays_deterministic() -> None:
     second = result.to_audit_dict(decision_id="same")
     assert first == second
     assert first["timestamp"] is None
+
+
+def test_audit_hash_is_deterministic_and_ignores_envelope() -> None:
+    model = DecisionModel(criteria=[Criterion("x", weight=1.0)])
+    result = model.rank([{"id": "a", "x": 1}, {"id": "b", "x": 2}])
+
+    h1 = result.audit_hash()
+    h2 = result.audit_hash()
+    assert h1 == h2
+    assert len(h1) == 64
+
+    audit_a = result.to_audit_dict(decision_id="one", metadata={"a": 1})
+    audit_b = result.to_audit_dict(
+        decision_id="two",
+        metadata={"b": 2},
+        timestamp="2026-07-10T10:00:00Z",
+    )
+    assert compute_audit_hash(audit_a) == compute_audit_hash(audit_b) == h1
+
+
+def test_to_audit_dict_include_hash() -> None:
+    model = DecisionModel(criteria=[Criterion("x", weight=1.0)])
+    result = model.rank([{"id": "a", "x": 3}, {"id": "b", "x": 1}])
+    audit = result.to_audit_dict(include_hash=True)
+    assert audit["audit_hash"]["algorithm"] == "sha256"
+    assert audit["audit_hash"]["digest"] == result.audit_hash()
+
+
+def test_audit_hash_can_include_timestamp() -> None:
+    model = DecisionModel(criteria=[Criterion("x", weight=1.0)])
+    result = model.rank([{"id": "a", "x": 1}, {"id": "b", "x": 2}])
+    plain = result.audit_hash()
+    stamped = result.audit_hash(
+        include_timestamp=True,
+        timestamp="2026-07-10T10:00:00Z",
+    )
+    assert plain != stamped
+
+
+def test_unsupported_hash_algorithm_raises() -> None:
+    model = DecisionModel(criteria=[Criterion("x", weight=1.0)])
+    result = model.rank([{"id": "a", "x": 1}, {"id": "b", "x": 2}])
+    with pytest.raises(ValidationError, match="Unsupported hash algorithm"):
+        result.audit_hash(algorithm="md5")
