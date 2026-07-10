@@ -13,7 +13,7 @@ def test_public_exports_available() -> None:
     assert hasattr(decisionkit, "Bonus")
     assert hasattr(decisionkit, "DecisionResult")
     assert hasattr(decisionkit, "ValidationError")
-    assert decisionkit.__version__ == "0.3.0"
+    assert decisionkit.__version__ == "0.3.0.post1"
 
 
 def test_star_imports_from_package_root() -> None:

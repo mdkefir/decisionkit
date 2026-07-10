@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "decisionkit"
-version = "0.3.0"
+version = "0.3.0.post1"
 description = "Lightweight explainable scoring and ranking engine for Python backends."
 readme = "README.md"
 license = "MIT"
