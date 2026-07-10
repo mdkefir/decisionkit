@@ -81,6 +81,7 @@ def build_explanation(
     normalized_values: dict[str, float],
     contributions: dict[str, float],
     triggered_penalties: tuple[str, ...] = (),
+    triggered_bonuses: tuple[str, ...] = (),
 ) -> Explanation:
     """Build a structured explanation with deterministic plain text."""
     score_text = _format_score(score)
@@ -90,6 +91,9 @@ def build_explanation(
     if triggered_penalties:
         names = ", ".join(triggered_penalties)
         text += f" Penalties applied: {names}."
+    if triggered_bonuses:
+        names = ", ".join(triggered_bonuses)
+        text += f" Bonuses applied: {names}."
 
     if method == "topsis":
         text += (
@@ -109,5 +113,6 @@ def build_explanation(
         normalized_values=dict(normalized_values),
         contributions=dict(contributions),
         triggered_penalties=triggered_penalties,
+        triggered_bonuses=triggered_bonuses,
         text=text,
     )

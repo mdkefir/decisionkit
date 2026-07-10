@@ -2,12 +2,18 @@
 
 Explainable decision support, scoring, and ranking for Python backends.
 
-DecisionKit lets you describe criteria, weights, constraints, and a decision method in a few lines of code, then get ranked alternatives with scores and human-readable explanations. No machine learning, no database, no web framework required.
+DecisionKit lets you describe criteria, weights, constraints, penalties, and bonuses in code or config, then get ranked alternatives with scores, explanations, and audit-ready output. No machine learning, no database, no web framework required.
 
 ## Installation
 
 ```bash
 pip install decisionkit
+```
+
+Optional YAML support:
+
+```bash
+pip install "decisionkit[yaml]"
 ```
 
 Until the package is published on PyPI, install from source:
@@ -37,16 +43,138 @@ result = model.rank([
 ])
 
 print(result.best.id)
-print(result.ranking)
 print(result.explain())
 ```
 
-Example explanation:
+## Config-driven quick start
 
-```text
-reviewer_1 ranked #1 with score 0.8. It had strong relevance and rating values. Score is the weighted sum of benefit-normalized criterion values.
-reviewer_2 ranked #2 with score 0.2. It had strong relevance and rating values, while its lower workload improved its score because workload is minimized. Score is the weighted sum of benefit-normalized criterion values.
+```python
+from decisionkit import DecisionModel
+
+config = {
+    "method": "weighted_sum",
+    "explain": True,
+    "criteria": [
+        {"name": "relevance", "weight": 0.5, "direction": "max"},
+        {"name": "rating", "weight": 0.3, "direction": "max"},
+        {"name": "workload", "weight": 0.2, "direction": "min"},
+    ],
+    "constraints": [
+        {
+            "name": "available_only",
+            "field": "available",
+            "operator": "eq",
+            "value": True,
+            "reason": "Reviewer must be available",
+        }
+    ],
+    "penalties": [
+        {
+            "name": "high_workload_penalty",
+            "field": "workload",
+            "operator": "gt",
+            "value": 5,
+            "amount": 0.1,
+            "reason": "High workload reduces recommendation score",
+        }
+    ],
+    "bonuses": [
+        {
+            "name": "exact_topic_bonus",
+            "field": "topic_match",
+            "operator": "gte",
+            "value": 0.9,
+            "amount": 0.05,
+            "reason": "Very strong topic match",
+        }
+    ],
+}
+
+model = DecisionModel.from_dict(config)
+
+result = model.rank(
+    [
+        {
+            "id": "reviewer_1",
+            "relevance": 0.92,
+            "rating": 4.8,
+            "workload": 7,
+            "available": True,
+            "topic_match": 0.95,
+        },
+        {
+            "id": "reviewer_2",
+            "relevance": 0.81,
+            "rating": 4.5,
+            "workload": 2,
+            "available": True,
+            "topic_match": 0.8,
+        },
+    ],
+    context={"max_workload": 5},
+)
+
+print(result.best.id)
+print(result.explain())
+print(result.to_audit_dict(decision_id="demo-1"))
 ```
+
+### JSON config
+
+```python
+model = DecisionModel.from_json(open("model.json", encoding="utf-8").read())
+print(model.to_json())
+```
+
+### YAML config
+
+Requires `pip install "decisionkit[yaml]"`.
+
+```python
+model = DecisionModel.from_yaml(open("model.yaml", encoding="utf-8").read())
+print(model.to_yaml())
+```
+
+## Rules: constraints, penalties, bonuses
+
+Supported operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, `between`.
+
+Rules can compare an alternative field to a literal value or to a context key:
+
+```python
+{
+    "name": "within_capacity",
+    "field": "workload",
+    "operator": "lte",
+    "context": "max_workload",
+    "reason": "Workload must stay within capacity",
+}
+```
+
+Compound rules use `all` (AND) or `any` (OR):
+
+```python
+{
+    "name": "eligible",
+    "all": [
+        {"field": "available", "operator": "eq", "value": True},
+        {"field": "workload", "operator": "lte", "context": "max_workload"},
+    ],
+    "reason": "Available and within capacity",
+}
+```
+
+## Audit export
+
+```python
+audit = result.to_audit_dict(
+    decision_id="req-123",
+    metadata={"tenant": "acme"},
+    timestamp="2026-07-10T10:00:00Z",  # optional; not auto-generated
+)
+```
+
+The audit payload includes model config, context, input ids, exclusions, score breakdowns, triggered penalties/bonuses, and the selected best alternative. It is JSON-serializable.
 
 ## Why DecisionKit exists
 
@@ -57,11 +185,11 @@ Academic MCDA packages are powerful, but often awkward for day-to-day backend wo
 DecisionKit is a backend-friendly decision engine:
 
 - clean, typed Python API
+- config-driven models (dict / JSON / optional YAML)
 - explainable ranking output
-- JSON-friendly results for APIs and audit logs
+- constraints, penalties, bonuses
+- audit-friendly results for APIs and logs
 - no ML, no ORM, no framework lock-in
-
-Useful for reviewer selection, vendor ranking, task prioritization, candidate scoring, risk scoring, and similar weighted decisions.
 
 ## Supported methods
 
@@ -70,29 +198,23 @@ Useful for reviewer selection, vendor ranking, task prioritization, candidate sc
 | Weighted sum (SAW) | `weighted_sum` | Min-max normalization; `min` criteria are inverted so higher is always better |
 | TOPSIS | `topsis` | Vector normalization and closeness to the ideal solution |
 
-Also included in the MVP:
-
-- criterion directions: `max` / `min`
-- hard `Constraint` filters
-- soft `Penalty` adjustments
-- structured + plain-text explanations
-
 ## FastAPI example
 
 ```python
 from fastapi import FastAPI, HTTPException
-from decisionkit import Criterion, DecisionModel, ValidationError
+from decisionkit import DecisionModel, ValidationError
 
 app = FastAPI()
 
 @app.post("/rank")
 def rank(payload: dict):
     try:
-        model = DecisionModel(
-            criteria=[Criterion(**c) for c in payload["criteria"]],
-            method=payload.get("method", "weighted_sum"),
+        model = DecisionModel.from_dict(payload["model"])
+        result = model.rank(
+            payload["alternatives"],
+            context=payload.get("context", {}),
         )
-        return model.rank(payload["alternatives"]).to_dict()
+        return result.to_audit_dict(decision_id=payload.get("decision_id"))
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 ```
@@ -101,21 +223,15 @@ See `examples/fastapi_example.py` for a complete request model.
 
 ## Django service-layer example
 
-Keep DecisionKit in a service module, not in views:
+Store the DecisionKit config in admin/settings/DB, then rank in a service module:
 
 ```python
-from decisionkit import Criterion, DecisionModel
+from decisionkit import DecisionModel
 
-def rank_reviewers(candidates: list[dict]) -> dict:
-    model = DecisionModel(
-        criteria=[
-            Criterion("relevance", weight=0.5, direction="max"),
-            Criterion("rating", weight=0.3, direction="max"),
-            Criterion("workload", weight=0.2, direction="min"),
-        ],
-        method="weighted_sum",
-    )
-    return model.rank(candidates).to_dict()
+def rank_reviewers(candidates: list[dict], model_config: dict) -> dict:
+    model = DecisionModel.from_dict(model_config)
+    result = model.rank(candidates, context={"max_workload": 5})
+    return result.to_audit_dict(decision_id="editorial-assign")
 ```
 
 See `examples/django_service_example.py` for a DTO-based service pattern.
@@ -132,22 +248,21 @@ python examples/django_service_example.py
 ```bash
 pip install -e ".[dev]"
 python -m pytest
+python -m ruff check src tests examples
 ```
 
 ## Roadmap
 
-### v0.2.0
+### v0.3.0
 
-- JSON/YAML config loading
 - AHP method
-- richer rule engine (bonuses, compound conditions)
-- audit log export helpers
+- richer audit hashing / signed decision records
+- FastAPI dependency helpers
+- first-class Django integration package sketch
 
 ### Later
 
 - ELECTRE / PROMETHEE
-- `decisionkit-django` integration package
-- FastAPI dependency helpers
 - optional CLI for batch ranking
 
 ## License

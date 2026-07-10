@@ -41,3 +41,7 @@ class DuplicateCriterionError(ValidationError):
 
 class DuplicateAlternativeError(ValidationError):
     """Raised when alternative ids are not unique."""
+
+
+class DependencyMissingError(DecisionKitError):
+    """Raised when an optional dependency is required but not installed."""

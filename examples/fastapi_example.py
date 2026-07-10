@@ -1,4 +1,4 @@
-"""FastAPI integration example (adapter only; FastAPI is not a core dependency).
+"""FastAPI integration example using config-driven DecisionKit models.
 
 Install extras to run this file:
 
@@ -11,9 +11,9 @@ Then:
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
-from decisionkit import Criterion, DecisionModel, ValidationError
+from decisionkit import DecisionModel, ValidationError
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -24,45 +24,34 @@ except ImportError as exc:  # pragma: no cover - example-only dependency
     ) from exc
 
 
-class CriterionIn(BaseModel):
-    name: str
-    weight: float = Field(gt=0)
-    direction: Literal["max", "min"] = "max"
-    description: str | None = None
-
-
 class RankRequest(BaseModel):
-    criteria: list[CriterionIn]
+    """Request body: model config + alternatives (+ optional context)."""
+
+    model: dict[str, Any] = Field(
+        description="DecisionKit model config (criteria, rules, method)"
+    )
     alternatives: list[dict[str, Any]]
-    method: Literal["weighted_sum", "topsis"] = "weighted_sum"
-    explain: bool = True
+    context: dict[str, Any] = Field(default_factory=dict)
+    decision_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-app = FastAPI(title="DecisionKit FastAPI Example", version="0.1.0")
+app = FastAPI(title="DecisionKit FastAPI Example", version="0.2.0")
 
 
 @app.post("/rank")
 def rank_alternatives(payload: RankRequest) -> dict[str, Any]:
-    """Rank alternatives using DecisionKit and return an audit-friendly payload."""
+    """Rank alternatives and return an audit-friendly payload."""
     try:
-        model = DecisionModel(
-            criteria=[
-                Criterion(
-                    item.name,
-                    weight=item.weight,
-                    direction=item.direction,
-                    description=item.description,
-                )
-                for item in payload.criteria
-            ],
-            method=payload.method,
-            explain=payload.explain,
-        )
-        result = model.rank(payload.alternatives)
+        model = DecisionModel.from_dict(payload.model)
+        result = model.rank(payload.alternatives, context=payload.context)
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return result.to_dict()
+    return result.to_audit_dict(
+        decision_id=payload.decision_id,
+        metadata=payload.metadata,
+    )
 
 
 @app.get("/health")

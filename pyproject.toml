@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "decisionkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Explainable decision support, scoring, and ranking for Python backends."
 readme = "README.md"
 license = { text = "MIT" }
@@ -36,9 +36,13 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+yaml = [
+    "PyYAML>=6.0",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    "PyYAML>=6.0",
 ]
 
 [project.urls]
