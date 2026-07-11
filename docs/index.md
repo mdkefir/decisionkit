@@ -14,7 +14,7 @@ Lightweight explainable scoring and ranking for Python backends.
 
 ## Project status
 
-DecisionKit is in **beta** (v0.3.0). The public API aims to stay stable across
+DecisionKit is in **beta** (v0.3.1). The public API aims to stay stable across
 minor releases. Breaking changes will be called out in `CHANGELOG.md`.
 
 ## Install

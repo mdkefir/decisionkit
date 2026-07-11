@@ -25,7 +25,7 @@ digest = result.audit_hash()  # sha256 hex digest
 - `method`
 - `model` (criteria, constraints, penalties, bonuses, explain flag)
 - `context`
-- `input_alternative_ids`
+- `input_alternative_ids` (original caller order from `rank(...)`, not ranking order)
 - `excluded`
 - `ranking` (scores, contributions, triggered rules, explanations)
 - `best`

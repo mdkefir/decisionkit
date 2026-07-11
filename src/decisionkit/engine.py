@@ -223,10 +223,11 @@ class DecisionModel:
         if not parsed:
             raise EmptyAlternativesError("At least one alternative is required")
 
-        ids = [alt.id for alt in parsed]
-        if len(ids) != len(set(ids)):
+        # Capture caller order before filtering, scoring, or re-ranking.
+        input_ids = tuple(alt.id for alt in parsed)
+        if len(input_ids) != len(set(input_ids)):
             raise DuplicateAlternativeError(
-                f"Alternative ids must be unique, got {ids}"
+                f"Alternative ids must be unique, got {list(input_ids)}"
             )
 
         runtime_context: dict[str, Any] = dict(context or {})
@@ -328,7 +329,7 @@ class DecisionModel:
             method=self.method,
             excluded=tuple(excluded),
             model=self.to_dict(),
-            input_ids=tuple(ids),
+            input_ids=input_ids,
             context=runtime_context,
         )
 

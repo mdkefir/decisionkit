@@ -5,6 +5,20 @@ All notable changes to DecisionKit are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-11
+
+### Fixed
+
+- Explanation text now uses normalized values (strong >= 0.67, weak <= 0.33)
+  instead of treating top contribution names as inherently strong
+- Minimized criteria are described as helpful only when normalized value is high
+- Highest-weight weak criterion is mentioned when it limited the score
+- `input_alternative_ids` explicitly preserves `rank(...)` caller order
+
+### Changed
+
+- Docs clarify that min-max scores are relative to the evaluated alternatives
+
 ## [0.3.0.post1] - 2026-07-10
 
 ### Fixed
@@ -62,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deterministic explanations
 - Reviewer, FastAPI, and Django service-layer examples
 
+[0.3.1]: https://github.com/mdkefir/decisionkit/releases/tag/v0.3.1
 [0.3.0.post1]: https://github.com/mdkefir/decisionkit/releases/tag/v0.3.0.post1
 [0.3.0]: https://github.com/mdkefir/decisionkit/releases/tag/v0.3.0
 [0.2.0]: https://github.com/mdkefir/decisionkit/releases/tag/v0.3.0

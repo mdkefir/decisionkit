@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "decisionkit"
-version = "0.3.0.post1"
+version = "0.3.1"
 description = "Lightweight explainable scoring and ranking engine for Python backends."
 readme = "README.md"
 license = "MIT"
@@ -57,11 +57,11 @@ dev = [
 docs = []
 
 [project.urls]
-Homepage = "https://github.com/decisionkit/decisionkit"
-Documentation = "https://github.com/decisionkit/decisionkit/tree/main/docs"
-Repository = "https://github.com/decisionkit/decisionkit"
-Issues = "https://github.com/decisionkit/decisionkit/issues"
-Changelog = "https://github.com/decisionkit/decisionkit/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/mdkefir/decisionkit"
+Documentation = "https://github.com/mdkefir/decisionkit/tree/main/docs"
+Repository = "https://github.com/mdkefir/decisionkit"
+Issues = "https://github.com/mdkefir/decisionkit/issues"
+Changelog = "https://github.com/mdkefir/decisionkit/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]

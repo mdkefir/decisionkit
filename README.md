@@ -13,7 +13,7 @@ No machine learning. No database. No web UI. Core has **zero runtime dependencie
 
 ## Project status
 
-**Beta (v0.3.0)** — useful for real backend workflows; API aims to stay stable across minor releases. See [CHANGELOG.md](CHANGELOG.md).
+**Beta (v0.3.1)** — useful for real backend workflows; API aims to stay stable across minor releases. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
@@ -231,8 +231,10 @@ DecisionKit is not trying to replace every MCDA method. It focuses on explainabl
 
 | Method | Key | Notes |
 | --- | --- | --- |
-| Weighted sum | `weighted_sum` | Min-max normalization; `min` criteria inverted |
+| Weighted sum | `weighted_sum` | Min-max normalization relative to the evaluated alternatives; `min` criteria inverted |
 | TOPSIS | `topsis` | Vector normalization + closeness to ideal |
+
+Scores and “strong/weak” explanation labels are **relative to the current alternative set**, not absolute universal grades.
 
 ## Examples
 
